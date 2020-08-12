@@ -84,7 +84,7 @@ lint/outputs/
 lint/tmp/
 # lint/reports/
 
-jsc/jsc-download-package
-jsc/libs
+download-jsc/jsc-download-package
+download-jsc/libs
 
 !/**/.gitkeep

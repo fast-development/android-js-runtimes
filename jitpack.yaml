@@ -1,0 +1,5 @@
+before_install:
+  - ./gradlew -p ./download-jsc downloadJsc
+install:
+  - echo "Running a custom install command"
+  - ./gradlew assembleRelease

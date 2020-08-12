@@ -1,8 +1,8 @@
+apply plugin: 'com.android.library'
+apply plugin: 'maven'
 
 
 android {
-    compileSdkVersion 29
-
     externalNativeBuild {
         // Encapsulates your CMake build configurations.
         cmake {
@@ -16,8 +16,5 @@ android {
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
         }
-    }
-    lintOptions {
-        disable 'InvalidPackage'
     }
 }

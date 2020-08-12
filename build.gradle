@@ -20,16 +20,30 @@ rootProject.allprojects {
 }
 
 subprojects {
-    apply plugin: 'com.android.library'
+    tasks.withType(Test){
+        enabled = false
+    }
 
-    
-android {
-    compileSdkVersion 29
-    defaultConfig {
-        minSdkVersion 21
+    apply plugin: 'com.android.library'
+    apply plugin: 'maven'
+
+    android {
+
+
+        compileSdkVersion 29
+        defaultConfig {
+            minSdkVersion 21
+        }
+        lintOptions {
+            disable 'InvalidPackage'
+        }
+
+
+        testOptions {
+            unitTests.all {
+                enabled false
+            }
+        }
     }
-    lintOptions {
-        disable 'InvalidPackage'
-    }
-}
+
 }
