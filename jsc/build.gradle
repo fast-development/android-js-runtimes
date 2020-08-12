@@ -22,10 +22,8 @@ repositories {
     }
 }
 
-
-
-
 apply plugin: 'com.kezong.fat-aar'
+
 android {
 
     packagingOptions {

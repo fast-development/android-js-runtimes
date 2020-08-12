@@ -19,7 +19,7 @@ rootProject.allprojects {
     }
 }
 
-apply plugin: 'maven-publish'
+
 
 subprojects {
     tasks.withType(Test){
@@ -28,6 +28,7 @@ subprojects {
 
     apply plugin: 'com.android.library'
 
+    apply plugin: 'maven-publish'
 
     android {
 
@@ -49,25 +50,83 @@ subprojects {
     }
 
 
+//    publishing {
+//        publications {
+//            publication(MavenPublication) {
+//                pom {
+//                    name = 'Android JS Runtimes'
+//
+//                }
+//
+//                afterEvaluate {
+//                    artifact bundleReleaseAar
+//                }
+//
+//            }
+//        }
+//
+//        repositories {
+//            mavenLocal()
+//        }
+//
+//    }
     publishing {
         publications {
-            aar(MavenPublication) {
-                pom {
-                    name = 'Android JS Runtimes'
+            android.libraryVariants.all { variant ->
+               // if (!variant.name.contains("Release")) return
 
+                println("Publishing config ${variant.name} for project ${project.name}...")
+
+
+                def variantArtifactId = "fastdev-jsruntimes-${project.name}"
+                def publicationName = "${project.name}${variant.name.capitalize()}Publication"
+
+                "$publicationName"(MavenPublication) {
+                    artifactId variantArtifactId
+
+                    // AAR
+                    artifact(variant.outputs[0].packageLibrary)
+
+                    // README.md
+                    if (file("$projectDir/README.md").exists()) {
+                        artifact("$projectDir/README.md") {
+                            classifier "README"
+                        }
+                    }
+//
+//                    // JavaDoc
+//                    if (file("$buildDir/outputs/javadoc/${artifactId}-javadoc.jar").exists()) {
+//                        artifact("$buildDir/outputs/javadoc/${artifactId}-javadoc.jar") {
+//                            classifier "javadoc"
+//                        }
+//                    }
+
+                    pom.withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+
+                        //Iterate over "api" and "implementation" dependencies (we don't want the test ones), adding a <dependency> node for each
+                        //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+                        configurations.api.allDependencies.findAll {
+                            it.name != 'unspecified'
+                        }.each {
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', it.group)
+                            dependencyNode.appendNode('artifactId', it.name)
+                            dependencyNode.appendNode('version', it.version)
+                        }
+                        configurations.implementation.allDependencies.findAll {
+                            it.name != 'unspecified'
+                        }.each {
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', it.group)
+                            dependencyNode.appendNode('artifactId', it.name)
+                            dependencyNode.appendNode('version', it.version)
+                        }
+                    }
                 }
-
-                afterEvaluate {
-                    artifact bundleReleaseAar
-                }
-
             }
         }
-
-        repositories {
-            mavenLocal()
-        }
-
     }
+
 
 }

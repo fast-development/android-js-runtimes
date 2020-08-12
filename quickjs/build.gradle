@@ -1,6 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
-
 
 android {
     externalNativeBuild {
@@ -18,3 +16,4 @@ android {
         }
     }
 }
+
