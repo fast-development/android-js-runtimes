@@ -18,7 +18,8 @@ rootProject.allprojects {
         jcenter()
     }
 }
-apply plugin: 'maven-publish'
+//apply plugin: 'maven-publish'
+
 subprojects {
     tasks.withType(Test){
         enabled = false
@@ -58,3 +59,6 @@ subprojects {
     }
 
 }
+
+
+apply from: 'https://raw.githubusercontent.com/sky-uk/gradle-maven-plugin/master/gradle-mavenizer.gradle'
