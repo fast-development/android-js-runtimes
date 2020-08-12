@@ -18,7 +18,8 @@ rootProject.allprojects {
         jcenter()
     }
 }
-//apply plugin: 'maven-publish'
+
+apply plugin: 'maven-publish'
 
 subprojects {
     tasks.withType(Test){
