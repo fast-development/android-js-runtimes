@@ -123,6 +123,10 @@ subprojects {
                             dependencyNode.appendNode('version', it.version)
                         }
                     }
+
+                    repositories {
+                        mavenLocal()
+                    }
                 }
             }
         }
