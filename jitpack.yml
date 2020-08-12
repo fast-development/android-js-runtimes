@@ -2,4 +2,4 @@ before_install:
   - ./gradlew -p ./download-jsc downloadJsc
 install:
   - echo "Running a custom install command"
-  - gradle install  -xtest -xinstallDebugAndroidTest
+  - ./gradlew install  -xtest -xinstallDebugAndroidTest
