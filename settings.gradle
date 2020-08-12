@@ -1,4 +1,2 @@
-
-rootProject.name = 'fastdev_js_runtimes'
-
+rootProject.name = 'jsrt'
 include ":quickjs", ":jsc"
