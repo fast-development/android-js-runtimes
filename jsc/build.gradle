@@ -8,33 +8,54 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.0'
         classpath "de.undercouch:gradle-download-task:4.1.1"
+        classpath 'com.kezong:fat-aar:1.2.15'
     }
 }
 
-rootProject.allprojects {
-    repositories {
-        google()
-        jcenter()
+
+repositories {
+    google()
+    jcenter()
+    maven {
+        // Local Maven repo containing AARs with JSC library built for Android
+        url "$projectDir/libs/package/dist"
     }
 }
 
 apply plugin: 'com.android.library'
 apply plugin: 'de.undercouch.download'
+apply plugin: 'com.kezong.fat-aar'
 
-android {
-    compileSdkVersion 29
-    defaultConfig {
-        minSdkVersion 21
-    }
-    lintOptions {
-        disable 'InvalidPackage'
+
+
+task downloadJsc(type: Download) {
+        
+    src 'https://registry.npmjs.org/jsc-android/-/jsc-android-245459.0.0.tgz'
+    dest new File("${projectDir}/jsc-download-package")
+    connectTimeout 25000
+    onlyIfNewer true
+    doLast {
+        
+        copy {
+            from tarTree(resources.gzip(new File("${projectDir}/jsc-download-package/jsc-android-245459.0.0.tgz")))
+            into "${getProjectDir()}/libs"
+            
+        }
     }
 }
 
+build.dependsOn downloadJsc
 
-task downloadFile(type: Download) {
-    src 'http://www.example.com/index.html'
-    dest new File("${projectDir}/jsc-package
+dependencies {
+
+    embed "org.webkit:android-jsc:r245459"
+}
+
+android {
+
+    packagingOptions {
+       pickFirst '**/libjsc.so'
+       pickFirst '**/libc++_shared.so'
+    }
 }

@@ -1,7 +1,4 @@
 
 rootProject.name = 'fastdev_js_runtimes'
 
-include = [
-    "quickjs",
-    "jsc"
-]
+include ":quickjs", ":jsc"
