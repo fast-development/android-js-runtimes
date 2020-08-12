@@ -1,0 +1,40 @@
+group 'io.abner.fastdev.android'
+version '1.0.0'
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath "de.undercouch:gradle-download-task:4.1.1"
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'de.undercouch.download'
+
+android {
+    compileSdkVersion 29
+    defaultConfig {
+        minSdkVersion 21
+    }
+    lintOptions {
+        disable 'InvalidPackage'
+    }
+}
+
+
+task downloadFile(type: Download) {
+    src 'http://www.example.com/index.html'
+    dest new File("${projectDir}/jsc-package
+}
