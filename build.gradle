@@ -48,15 +48,18 @@ subprojects {
         }
     }
 
+
     publishing {
         publications {
-            mavenPublish(MavenPublication) {
+            aar(MavenPublication) {
                 pom {
                     name = 'Android JS Runtimes'
 
                 }
 
-                artifact bundleReleaseAar
+                afterEvaluate {
+                    artifact bundleReleaseAar
+                }
 
             }
         }
@@ -64,6 +67,7 @@ subprojects {
         repositories {
             mavenLocal()
         }
+
     }
 
 }
