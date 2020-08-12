@@ -50,7 +50,7 @@ subprojects {
 
     publishing {
         publications {
-            mavenJava(MavenPublication) {
+            mavenPublish(MavenPublication) {
                 pom {
                     name = 'Android JS Runtimes'
 
