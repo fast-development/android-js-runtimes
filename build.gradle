@@ -47,17 +47,6 @@ subprojects {
         }
     }
 
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                pom {
-                    name = 'Android JS Runtimes'
-
-                }
-            }
-        }
-    }
-
 }
 
 
