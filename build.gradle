@@ -18,8 +18,7 @@ rootProject.allprojects {
         jcenter()
     }
 }
-apply plugin: 'maven'
-
+apply plugin: 'maven-publish'
 subprojects {
     tasks.withType(Test){
         enabled = false
@@ -43,6 +42,17 @@ subprojects {
         testOptions {
             unitTests.all {
                 enabled false
+            }
+        }
+    }
+
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                pom {
+                    name = 'Android JS Runtimes'
+
+                }
             }
         }
     }
