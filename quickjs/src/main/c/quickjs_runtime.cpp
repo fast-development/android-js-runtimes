@@ -1,5 +1,4 @@
 #include <quickjs.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,10 +6,14 @@
 
 int QUICKJS_RUNTIME_DEBUG_ENABLED = 0;
 
-
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
 JSRuntime *JS_NewRuntimeDartBridge(void) {
-    return JS_NewRuntime();
+    JSRuntime *runtime = JS_NewRuntime();
+    JS_SetGCThreshold(runtime, -1); // disable GC - to prevent GC disallocate variables
+                                    // yet in use in the Dart side
+    // JS_SetMemoryLimit(rt, 0x4000000); // 64 Mo
+    // JS_SetMemoryLimit(runtime, -1); is the default
+    return runtime;
 }
 
 #define QUICKJS_CHANNEL_CONSOLELOG 0;
@@ -52,7 +55,6 @@ static JSValue CChannelFunction(JSContext *ctx, JSValueConst  this_val,
     struct channel *cur = channel_functions;
 
     JSValue jsResult = JS_NULL;
-    char* result = nullptr;
     // while(cur->ctx) {
     //     //if(!strcmp(cur->name, channelName)) {
     //     if (cur->ctx == ctx && cur->assigned == 1) {
@@ -78,19 +80,11 @@ static JSValue CChannelFunction(JSContext *ctx, JSValueConst  this_val,
 
         if (funcCaller != nullptr) {
             jsResult = * funcCaller(ctx, channelName, message);
-            // JS_Eval(ctx, "console.log('Aqui no CChannelFunction5');", 40,"arquivo.js",0);
-            // jsResult = JS_NewString(ctx, result);
-            //jsResult = JS_NewString(ctx, "No function found");
         } else {
             jsResult = JS_NewString(ctx, "No function found");
         }
     }
     
-    // if (result != nullptr) {
-    //     JS_Eval(ctx, "console.log('Aqui no CChannelFunction6');", 40,"arquivo.js",0);
-    //     free(result);
-    //     JS_Eval(ctx, "console.log('Aqui no CChannelFunction7');", 40,"arquivo.js",0);
-    // }
     return jsResult;
 }
 
@@ -146,91 +140,57 @@ JSContext *JS_NewContextDartBridge(
         contextsLength=3;
     }
 
+    JS_FreeValue(ctx, globalObject);
+
+    JS_FreeValue(ctx, stringifyFn);
 
     // returns the generated context
     return ctx;
 }
 
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-char *JS_ToCStringDartBridge(JSContext *ctx, JSValueConst *val1) {
-    char *result = (char*)JS_ToCString(ctx, * val1);
-    return result;
-}
+
 
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
-const JSValue *JS_Eval_Wrapper(JSContext *ctx, const char *input, size_t input_len,
-                const char *filename, int eval_flags) {
-    static JSValue result = JS_Eval(ctx, input, input_len, filename, eval_flags);
-    if (JS_IsException(result) == 1) {
-        result = JS_GetException(ctx);
-    }
-    return &result;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-const char *JS_Eval_Wrapper2(JSContext *ctx, const char *input, size_t input_len,
+const void *JSEvalWrapper(JSContext *ctx, const char *input, size_t input_len,
                   const char *filename, int eval_flags,
-                  int *errors, JSValueConst *result) {
+                  int *errors, JSValueConst *result, char **stringResult) {
+    
+    //__android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "Before Eval: %p", result);
     *result = JS_Eval(ctx, input, input_len, filename, eval_flags);
+    //__android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "After Eval: %p", result);
 
     *errors = 0;
 
+    
     if (JS_IsException(*result) == 1) {
+        // __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "Inside is exception: %p", result);
+        JS_FreeValue(ctx, *result);
         *errors = 1;
         *result = JS_GetException(ctx);
+        // __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "After get  exception: %p", result);
     }
-
-    return (char*)JS_ToCString(ctx, *result);
+    // __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "Before string result: %p", stringResult);
+    *stringResult = (char*)JS_ToCString(ctx, *result);
+    // __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "After string result: %p", stringResult);
+    return nullptr;
 }
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-const JSValue *JS_GetGlobalObjectWrapper(JSContext *ctx) {
-    JSValue result = JS_GetGlobalObject(ctx);
-    return &result;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-void registerNativeFunction(JSContext *ctx) {
-    JSValue result = JS_GetGlobalObject(ctx);
-   // return &result;
-}
-
 
 
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int JS_IsErrorDartWrapper(JSContext *ctx, JSValueConst *value) {
-    JS_BOOL result = JS_IsError(ctx, * value);
-    return result;
+void *JS_GetNullValue(JSContext *ctx, JSValue *result) {
+    * result = JS_Eval(
+        ctx,
+        "null", 
+        4,
+        "f1.js",
+        0
+    );
+    return nullptr;
 }
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int JS_IsExceptionDartWrapper(const JSValueConst *value) {
-    JS_BOOL result = JS_IsException(* value);
-    return result;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-JSValue *JS_GetExceptionDartWrapper(JSContext *ctx) {
-    JSValue result = JS_GetException(ctx);
-    return &result;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-void JS_FreeValueDartWrapper(JSContext *ctx, JSValueConst *value) {
-    JS_FreeValue(ctx, * value);
-}
-
-
-
-// typedef void(*callback_t)(int);        // callback receives int returns void
-//typedef void (*channel)(*char, *char);  // callback receives two string arguments and returns void
-
-// function which will receives a channel function which javascript would send data to Dart
-//
 
 // used in method callFunction in quickjs_method_bindings
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int callJsFunction1Arg(JSContext *ctx, JSValueConst *function, JSValueConst *object, JSValueConst *result) {
+int callJsFunction1Arg(JSContext *ctx, JSValueConst *function, JSValueConst *object, JSValueConst *result, char **stringResult) {
     JSValue globalObject = JS_GetGlobalObject(ctx);
     //JSValue function = JS_GetPropertyStr(ctx, globalObject, functionName);
     * result = JS_Call(ctx, *function, globalObject, 1, object);
@@ -241,176 +201,9 @@ int callJsFunction1Arg(JSContext *ctx, JSValueConst *function, JSValueConst *obj
         successOperation = 0;
         * result = JS_GetException(ctx);
     }
+    *stringResult = (char*)JS_ToCString(ctx, *result);
     return successOperation;
 }
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-char *JS_ToStringDartWrapper(JSContext *ctx, JSValue *val) {
-    JSValue jsvalueResult = JS_ToString(ctx, *val);
-    char *result = (char*)JS_ToCString(ctx, jsvalueResult);
-    if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
-        __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "toString Result: %s", result);
-    }
-    return result;
-}
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int registerChannelFunction(JSContext *ctx, char *channelName, char *functionName, JSCFunction *fn) {
-    JSValue globalObject = JS_GetGlobalObject(ctx);
-    char* quickJsChannelsPropertyName = (char*)"QUICKJS_TO_DART_CHANNEL_NATIVE";
-
-    JSValue hashChannels = JS_GetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName);
-    if (JS_IsUndefined(hashChannels)) {
-        hashChannels = JS_NewObject(ctx);
-        JS_SetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName, hashChannels);
-    }
-
-    //char* functionName = (char*)"QUICKJS_CHANNELS_channelName";
-    JS_SetPropertyStr(
-        ctx,
-        hashChannels,
-        channelName,
-        JS_NewCFunction(ctx, *fn, functionName, 2) // TODO: criar a function C do lado do dart e passar como argumento
-    );
-    return 1;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int registerChannelFunction2(JSContext *ctx, char *channelName, char *functionName, JSCClosure *fn) {
-    JSValue globalObject = JS_GetGlobalObject(ctx);
-    char* quickJsChannelsPropertyName = (char*)"FLUTTER_JS_NATIVE_CLOSURES";
-
-    JSValue hashChannels = JS_GetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName);
-    if (JS_IsUndefined(hashChannels)) {
-        hashChannels = JS_NewObject(ctx);
-        JS_SetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName, hashChannels);
-    }
-
-    //char* functionName = (char*)"QUICKJS_CHANNELS_channelName";
-    JS_SetPropertyStr(
-        ctx,
-        hashChannels,
-        channelName,
-        JS_NewCClosure(ctx, *fn, 3, 0, reinterpret_cast<void*>(*fn), nullptr) // TODO: criar a function C do lado do dart e passar como argumento
-    );
-    return 1;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-void JS_NewStringDartWrapper(JSContext *ctx, const char *value, JSValue *newString) {
-    char *stringValueExpression;
-    asprintf(&stringValueExpression, "'%s';", value);
-    * newString = JS_Eval(ctx, stringValueExpression, strlen(stringValueExpression), "f1.js", 0);
-    free(stringValueExpression);
-}
-
-
-#define MAX_FUNCTION_ARGS            10
-struct CallDartProxy {
-    JSValueConst args[MAX_FUNCTION_ARGS];
-    char *functionName;
-};
-
-
-typedef JSValueConst  *(*callDart)(JSValueConst  *);
-callDart callDartFunc;
-
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-JSValue callDartCProxy(JSContext *ctx, JSValueConst  this_val,
-                              int argc, JSValueConst *argv)
-{
-    // int i;
-    // const char *str;
-    // size_t len;
-
-    // for(i = 0; i < argc; i++) {
-    //     if (i != 0)
-    //         putchar(' ');
-    //     str = JS_ToCStringLen(ctx, &len, argv[i]);
-    //     if (!str)
-    //         return JS_EXCEPTION;
-    //     fwrite(str, 1, len, stdout);
-    //     JS_FreeCString(ctx, str);
-    // }
-    // putchar('\n');
-
-     char* filename = (char*)"LOG.js";
-    char* log1 = (char*)"console.log('LOG1');";
-    char* log2 = (char*)"console.log('LOG2');";
-    char* log3 = (char*)"console.log('LOG3');";
-    char* log4 = (char*)"console.log(Object.keys(this));";
-
-    JSValueConst *result;
-    JS_Eval(ctx, log1, 19, filename, 0);
-    // if (arc != NULL && argc == 0) {
-    //     JS_Eval(ctx, log2, 19, filename, 0);
-    //    result = callDartFunc((JSValueConst*)nullptr);
-    //    JS_Eval(ctx, log3, 19, filename, 0);
-    // } else {
-    //    result =  callDartFunc(&argv[0]);
-    // }
-    //return *result;
-    // if (argc == 0) {
-    //     JS_Eval(ctx, log2, 19, filename, 0);
-    // }
-    // if (argv == NULL) {
-    //     JS_Eval(ctx, log3, 19, filename, 0);
-    // }
-    JSValueConst *ptr;
-    *ptr = JS_UNDEFINED; 
-    JS_Eval(ctx, log2, 19, filename, 0);
-    callDartFunc(ptr);
-    JS_Eval(ctx, log3, 19, filename, 0);
-    return JS_UNDEFINED;
-}
-
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int JS_NewCClosureDartWrapper(JSContext *ctx, char *name, JSCClosure *fn, int length, void *opaque, 
-  void (*opaque_finalize)(void*), JSValue *closure) {
-
-    JSValue globalObject = JS_GetGlobalObject(ctx);
-    char* quickJsChannelsPropertyName = (char*)"FLUTTER_JS_NATIVE_CLOSURES";
-
-    JSValue hashChannels = JS_GetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName);
-    if (JS_IsUndefined(hashChannels)) {
-        hashChannels = JS_NewObject(ctx);
-        JS_SetPropertyStr(ctx, globalObject, quickJsChannelsPropertyName, hashChannels);
-    }
-
-    if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
-        __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "%p", nullptr);
-    }
-    JS_SetPropertyStr(
-        ctx, hashChannels, "callDart", *closure
-    );
-  return 1;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int defineGlobalProperty(JSContext *ctx, char *name, JSValue *propertyValue) {
-    JSValue globalObject = JS_GetGlobalObject(ctx);
-    JS_SetPropertyStr(
-        ctx,
-        globalObject,
-        name,
-        *propertyValue
-    );
-    return 1;
-}
-
-extern "C" __attribute__((visibility("default"))) __attribute__((used))
-int isType(JSContext *ctx, char *name, JSValue *propertyValue, char *type) {
-    JSValue globalObject = JS_GetGlobalObject(ctx);
-    JS_SetPropertyStr(
-        ctx,
-        globalObject,
-        name,
-        *propertyValue
-    );
-    return 1;
-}
-
 
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
 int getTypeTag(JSValue *jsValue) {
@@ -429,7 +222,7 @@ int JS_IsArrayDartWrapper(JSContext *ctx, JSValueConst *val) {
 extern "C" __attribute__((visibility("default"))) __attribute__((used))
 int JS_JSONStringifyDartWrapper(
     JSContext *ctx,
-    JSValue *obj, JSValueConst *result) {
+    JSValue *obj, JSValueConst *result, char **stringResult) {
     if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
     __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "JS_JSONStringifyDartWrapper %p", result);
     }
@@ -441,17 +234,20 @@ int JS_JSONStringifyDartWrapper(
         if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
             __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "JS_JSONStringifyDartWrapper3 %p", result);
         }
+        * stringResult = (char*) "undefined";
         return 0;
     } else if ( JS_IsNull(*obj) == 1) {
         if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
             __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "JS_JSONStringifyDartWrapper4 %p", result);
         }
+        * stringResult = (char*) "null";
         return 0;
     } else {
         if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
             __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "JS_JSONStringifyDartWrapper5 %p", result);
         }
         * result = JS_Call(ctx, stringifyFn, globalObject, 1, obj);
+        * stringResult = (char*)JS_ToCString(ctx, *result);
         if (QUICKJS_RUNTIME_DEBUG_ENABLED == 1) {
             __android_log_print(ANDROID_LOG_DEBUG, "LOG_TAG", "JS_JSONStringifyDartWrapper6 %p", result);
         }
