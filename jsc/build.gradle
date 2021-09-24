@@ -33,6 +33,6 @@ apply plugin: 'com.kezong.fat-aar'
 //}
 
 dependencies {
-    embed "org.webkit:android-jsc:r245459"
+    embed "org.webkit:android-jsc-intl:r245459"
     embed "org.webkit:android-jsc-cppruntime:r245459"
 }
