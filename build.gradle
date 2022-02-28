@@ -1,5 +1,5 @@
 group 'io.abner.fastdev.android'
-version '0.1.5'
+version '0.1.8'
 
 buildscript {
     repositories {
