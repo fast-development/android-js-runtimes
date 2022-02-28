@@ -19,6 +19,22 @@ apply plugin: 'java'
 
 task downloadJsc(type: Download) {
 
+    src 'https://registry.npmjs.org/jsc-android/-/jsc-android-245459.0.0.tgz'
+    dest new File("${projectDir}/jsc-download-package")
+    connectTimeout 25000
+    onlyIfNewer true
+    doLast {
+
+        copy {
+            from tarTree(resources.gzip(new File("${projectDir}/jsc-download-package/jsc-android-245459.0.0.tgz")))
+            into "${getProjectDir()}/libs/245459.0.0"
+
+        }
+    }
+}
+
+task downloadJscNewest(type: Download) {
+
     src 'https://registry.npmjs.org/jsc-android/-/jsc-android-250230.2.1.tgz'
     dest new File("${projectDir}/jsc-download-package")
     connectTimeout 25000
@@ -27,13 +43,15 @@ task downloadJsc(type: Download) {
 
         copy {
             from tarTree(resources.gzip(new File("${projectDir}/jsc-download-package/jsc-android-250230.2.1.tgz")))
-            into "${getProjectDir()}/libs"
+            into "${getProjectDir()}/libs/250230.2.1"
 
         }
     }
 }
 
 build.dependsOn downloadJsc
+
+downloadJsc.dependsOn downloadJscNewest
 
 
 task replaceAndroidJsc(type: Copy) {
