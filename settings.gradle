@@ -1,2 +1,2 @@
 rootProject.name = 'jsrt'
-include ":quickjs", ":jsc"
+include ":quickjs", ":jsc", ":jsc-intl"
