@@ -24,13 +24,13 @@ repositories {
 
 apply plugin: 'com.kezong.fat-aar'
 
-//android {
-//
-//    packagingOptions {
-//        pickFirst '**/libjsc.so'
-//        pickFirst '**/libc++_shared.so'
-//    }
-//}
+android {
+
+   packagingOptions {
+       pickFirst '**/libjsc.so'
+       pickFirst '**/libc++_shared.so'
+   }
+}
 
 dependencies {
     embed "org.webkit:android-jsc-intl:+"
