@@ -26,10 +26,20 @@ apply plugin: 'com.kezong.fat-aar'
 
 android {
 
-   packagingOptions {
-       pickFirst '**/libjsc.so'
-       pickFirst '**/libc++_shared.so'
-   }
+//    packagingOptions {
+//        pickFirst '**/libjsc.so'
+//        pickFirst '**/libc++_shared.so'
+//    }
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+                arguments "-DANDROID_STL=c++_shared"//, "-DANDROID_ARM_NEON=TRUE"
+
+            }
+
+        }
+    }
 }
 
 dependencies {
