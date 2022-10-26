@@ -16,24 +16,15 @@ buildscript {
 repositories {
     google()
     jcenter()
-    maven {
-        // Local Maven repo containing AARs with JSC library built for Android
-        url "$projectDir/../download-jsc/libs/245459.0.0/package/dist"
-    }
      maven {
         // Local Maven repo containing AARs with JSC library built for Android
-        url "$projectDir/../download-jsc/libs/250230.2.1/package/dist"
+        url "$projectDir/../download-jsc/libs/294992.0.0/package/dist"
     }
 }
 
 apply plugin: 'com.kezong.fat-aar'
 
 android {
-
-//    packagingOptions {
-//        pickFirst '**/libjsc.so'
-//        pickFirst '**/libc++_shared.so'
-//    }
     defaultConfig {
         externalNativeBuild {
             cmake {
@@ -47,6 +38,5 @@ android {
 }
 
 dependencies {
-    embed "org.webkit:android-jsc-intl:r250230"
-    embed "org.webkit:android-jsc-cppruntime:r245459"
+    embed "org.webkit:android-jsc-intl:r294992"
 }

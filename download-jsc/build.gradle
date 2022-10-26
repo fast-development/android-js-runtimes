@@ -49,9 +49,27 @@ task downloadJscNewest(type: Download) {
     }
 }
 
+task downloadJscNewestIntl(type: Download) {
+
+    src 'https://registry.npmjs.org/jsc-android/-/jsc-android-294992.0.0.tgz'
+    dest new File("${projectDir}/jsc-download-package")
+    connectTimeout 25000
+    onlyIfNewer true
+    doLast {
+
+        copy {
+            from tarTree(resources.gzip(new File("${projectDir}/jsc-download-package/jsc-android-294992.0.0.tgz")))
+            into "${getProjectDir()}/libs/294992.0.0"
+
+        }
+    }
+}
+
 build.dependsOn downloadJsc
 
 downloadJsc.dependsOn downloadJscNewest
+
+downloadJsc.dependsOn downloadJscNewestIntl
 
 
 task replaceAndroidJsc(type: Copy) {
