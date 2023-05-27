@@ -46,5 +46,5 @@ android {
 
 dependencies {
     embed "org.webkit:android-jsc:r250231"
-    embed "org.webkit:android-jsc-cppruntime:r250231"
+    embed "org.webkit:android-jsc-cppruntime:r245459"
 }

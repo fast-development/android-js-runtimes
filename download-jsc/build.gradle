@@ -18,6 +18,21 @@ buildscript {
 apply plugin: 'de.undercouch.download'
 apply plugin: 'java'
 
+ask downloadOldJsc(type: Download) {
+
+    src 'https://registry.npmjs.org/jsc-android/-/jsc-android-245459.0.0.tgz'
+    dest new File("${projectDir}/jsc-download-package")
+    connectTimeout 25000
+    onlyIfNewer true
+    doLast {
+
+        copy {
+            from tarTree(resources.gzip(new File("${projectDir}/jsc-download-package/jsc-android-245459.0.0.tgz")))
+            into "${getProjectDir()}/libs/245459.0.0"
+        }
+    }
+}
+
 task downloadJsc(type: Download) {
 
     src 'https://registry.npmjs.org/jsc-android/-/jsc-android-250231.0.0.tgz'
@@ -52,6 +67,7 @@ task downloadJscIntl(type: Download) {
 
 build.dependsOn downloadJsc
 
+downloadJsc.dependsOn downloadOldJsc
 downloadJsc.dependsOn downloadJscIntl
 
 
