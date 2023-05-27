@@ -18,7 +18,7 @@ buildscript {
 apply plugin: 'de.undercouch.download'
 apply plugin: 'java'
 
-ask downloadOldJsc(type: Download) {
+task downloadOldJsc(type: Download) {
 
     src 'https://registry.npmjs.org/jsc-android/-/jsc-android-245459.0.0.tgz'
     dest new File("${projectDir}/jsc-download-package")
