@@ -1,14 +1,15 @@
 group 'io.abner.fastdev.android'
-version '0.2.0'
+version '0.3.0'
 
 buildscript {
     repositories {
+        gradlePluginPortal()
         google()
         jcenter()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath 'com.android.tools.build:gradle:7.1.3'
     }
 }
 
