@@ -23,3 +23,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DCONFIG_VERSION=\\\"2021-03-27\\\"")
 
 find_library(log-lib log)
 target_link_libraries(fastdev_quickjs_runtime ${log-lib})
+
+if(MSVC)
+    # https://github.com/ekibun/flutter_qjs/issues/7
+    target_compile_options(fastdev_quickjs_runtime PRIVATE "/Oi-")
+endif()

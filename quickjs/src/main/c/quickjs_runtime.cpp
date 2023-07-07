@@ -7,7 +7,8 @@
 #else
 #define __android_log_print(a, b, c, d)
 #endif
-
+#include <functional>
+#include <future>
 #ifdef _MSC_VER
 #define DLLEXPORT __declspec(dllexport)
 #else
@@ -342,13 +343,17 @@ extern "C"
         return new JSValue(JS_NULL);
     }
 
+    struct RuntimeOpaque {
+      JSChannel * channel;
+      int64_t timeout;
+      int64_t start;
+    };
+
     JSModuleDef *js_module_loader(
-        JSContext *ctx,
-        const char *module_name, void *opaque)
+      JSContext *ctx,
+      const char *module_name, void *opaque)
     {
-        JSRuntime *rt = JS_GetRuntime(ctx);
-        JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
-        const char *str = (char *)channel(ctx, JSChannelType_MODULE, (void *)module_name);
+        const char *str = (char *)((RuntimeOpaque *)opaque)->channel(ctx, JSChannelType_MODULE, (void *)module_name);
         if (str == 0)
             return NULL;
         JSValue func_val = JS_Eval(ctx, str, strlen(str), module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
@@ -363,62 +368,85 @@ extern "C"
     JSValue js_channel(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data)
     {
         JSRuntime *rt = JS_GetRuntime(ctx);
-        JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
+        RuntimeOpaque *opaque = (RuntimeOpaque *)JS_GetRuntimeOpaque(rt);
         void *data[4];
         data[0] = &this_val;
         data[1] = &argc;
         data[2] = argv;
         data[3] = func_data;
-        return *(JSValue *)channel(ctx, JSChannelType_METHON, data);
+        return *(JSValue *)opaque->channel(ctx, JSChannelType_METHON, data);
     }
 
     void js_promise_rejection_tracker(JSContext *ctx, JSValueConst promise,
-                                      JSValueConst reason,
-                                      JS_BOOL is_handled, void *opaque)
+                                    JSValueConst reason,
+                                    JS_BOOL is_handled, void *opaque)
     {
         if (is_handled)
-            return;
-        JSRuntime *rt = JS_GetRuntime(ctx);
-        JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
-        channel(ctx, JSChannelType_PROMISE_TRACK, &reason);
+        return;
+        ((RuntimeOpaque *)opaque)->channel(ctx, JSChannelType_PROMISE_TRACK, &reason);
     }
 
-    DLLEXPORT JSRuntime *jsNewRuntime(JSChannel channel)
+    int js_interrupt_handler(JSRuntime * rt, void * opaque) {
+        RuntimeOpaque *op = (RuntimeOpaque *)opaque;
+        if(op->timeout && op->start && (clock() - op->start) > op->timeout * CLOCKS_PER_SEC / 1000) {
+        op->start = 0;
+        return 1;
+        }
+        return 0;
+    }
+
+    
+    DLLEXPORT JSRuntime *jsNewRuntime(JSChannel channel, int64_t timeout)
     {
         JSRuntime *rt = JS_NewRuntime();
-        JS_SetRuntimeOpaque(rt, (void *)channel);
-        JS_SetHostPromiseRejectionTracker(rt, js_promise_rejection_tracker, nullptr);
-        JS_SetModuleLoaderFunc(rt, nullptr, js_module_loader, nullptr);
+        RuntimeOpaque *opaque = new RuntimeOpaque({channel, timeout, 0});
+        JS_SetRuntimeOpaque(rt, opaque);
+        JS_SetHostPromiseRejectionTracker(rt, js_promise_rejection_tracker, opaque);
+        JS_SetModuleLoaderFunc(rt, nullptr, js_module_loader, opaque);
+        JS_SetInterruptHandler(rt, js_interrupt_handler, opaque);
         return rt;
     }
 
-    DLLEXPORT uint32_t jsNewClass(JSContext *ctx, const char *name)
-    {
-        JSClassID QJSClassId = 0;
-        JS_NewClassID(&QJSClassId);
-        JSRuntime *rt = JS_GetRuntime(ctx);
-        if (!JS_IsRegisteredClass(rt, QJSClassId))
-        {
-            JSClassDef def{
-                name,
-                // destructor
-                [](JSRuntime *rt, JSValue obj) noexcept {
-                    JSClassID classid = JS_GetClassID(obj);
-                    void *opaque = JS_GetOpaque(obj, classid);
-                    JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
-                    if (channel == nullptr)
-                        return;
-                    channel((JSContext *)rt, JSChannelType_FREE_OBJECT, opaque);
-                }};
-            int e = JS_NewClass(rt, QJSClassId, &def);
-            if (e < 0)
-            {
-                JS_ThrowInternalError(ctx, "Cant register class %s", name);
-                return 0;
-            }
-        }
-        return QJSClassId;
-    }
+    
+
+
+    /* return NULL if not an object of class class_id */
+    // JSClassID JS_GetClassID(JSValueConst obj)
+    // {
+    //     JSObject *p;
+    //     if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
+    //         return NULL;
+    //     p = JS_VALUE_GET_OBJ(obj);
+    //     return p->class_id;
+    // }
+
+    // DLLEXPORT uint32_t jsNewClass(JSContext *ctx, const char *name)
+    // {
+    //     JSClassID QJSClassId = 0;
+    //     JS_NewClassID(&QJSClassId);
+    //     JSRuntime *rt = JS_GetRuntime(ctx);
+    //     if (!JS_IsRegisteredClass(rt, QJSClassId))
+    //     {
+    //         JSClassDef def{
+    //             name,
+    //             // destructor
+    //             [](JSRuntime *rt, JSValue obj) noexcept {
+    //                 JSClassID classid = JS_GetClassID(obj);
+    //                 void *opaque = JS_GetOpaque(obj, classid);
+    //                 JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
+    //                 if (channel == nullptr)
+    //                     return;
+    //                 channel((JSContext *)rt, JSChannelType_FREE_OBJECT, opaque);
+    //             }};
+    //         int e = JS_NewClass(rt, QJSClassId, &def);
+    //         if (e < 0)
+    //         {
+    //             JS_ThrowInternalError(ctx, "Cant register class %s", name);
+    //             return 0;
+    //         }
+    //     }
+    //     return QJSClassId;
+    // }
 
     DLLEXPORT void *jsGetObjectOpaque(JSValue *obj, uint32_t classid)
     {
