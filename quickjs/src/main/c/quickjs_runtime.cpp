@@ -409,44 +409,34 @@ extern "C"
 
     
 
-
-    /* return NULL if not an object of class class_id */
-    // JSClassID JS_GetClassID(JSValueConst obj)
-    // {
-    //     JSObject *p;
-    //     if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
-    //         return NULL;
-    //     p = JS_VALUE_GET_OBJ(obj);
-    //     return p->class_id;
-    // }
-
-    // DLLEXPORT uint32_t jsNewClass(JSContext *ctx, const char *name)
-    // {
-    //     JSClassID QJSClassId = 0;
-    //     JS_NewClassID(&QJSClassId);
-    //     JSRuntime *rt = JS_GetRuntime(ctx);
-    //     if (!JS_IsRegisteredClass(rt, QJSClassId))
-    //     {
-    //         JSClassDef def{
-    //             name,
-    //             // destructor
-    //             [](JSRuntime *rt, JSValue obj) noexcept {
-    //                 JSClassID classid = JS_GetClassID(obj);
-    //                 void *opaque = JS_GetOpaque(obj, classid);
-    //                 JSChannel *channel = (JSChannel *)JS_GetRuntimeOpaque(rt);
-    //                 if (channel == nullptr)
-    //                     return;
-    //                 channel((JSContext *)rt, JSChannelType_FREE_OBJECT, opaque);
-    //             }};
-    //         int e = JS_NewClass(rt, QJSClassId, &def);
-    //         if (e < 0)
-    //         {
-    //             JS_ThrowInternalError(ctx, "Cant register class %s", name);
-    //             return 0;
-    //         }
-    //     }
-    //     return QJSClassId;
-    // }
+    DLLEXPORT uint32_t jsNewClass(JSContext *ctx, const char *name)
+    {
+        JSClassID QJSClassId = 0;
+        JS_NewClassID(&QJSClassId);
+        JSRuntime *rt = JS_GetRuntime(ctx);
+        if (!JS_IsRegisteredClass(rt, QJSClassId))
+        {
+        JSClassDef def{
+            name,
+            // destructor
+            [](JSRuntime *rt, JSValue obj) noexcept
+            {
+                JSClassID classid = JS_GetClassID(obj);
+                void *opaque = JS_GetOpaque(obj, classid);
+                RuntimeOpaque *runtimeOpaque = (RuntimeOpaque *)JS_GetRuntimeOpaque(rt);
+                if (runtimeOpaque == nullptr)
+                return;
+                runtimeOpaque->channel((JSContext *)rt, JSChannelType_FREE_OBJECT, opaque);
+            }};
+        int e = JS_NewClass(rt, QJSClassId, &def);
+        if (e < 0)
+        {
+            JS_ThrowInternalError(ctx, "Cant register class %s", name);
+            return 0;
+        }
+        }
+        return QJSClassId;
+    }
 
     DLLEXPORT void *jsGetObjectOpaque(JSValue *obj, uint32_t classid)
     {
